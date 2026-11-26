@@ -4,13 +4,23 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 type Base = { id: string; user_id: string; created_at: string };
 type BaseInsert = { id?: string; user_id?: string; created_at?: string };
 
-type Table<Row extends Base, Required extends keyof Row = never> = {
+type Rel<Name extends string, Col extends string, Ref extends string> = {
+  foreignKeyName: Name;
+  columns: [Col];
+  isOneToOne: false;
+  referencedRelation: Ref;
+  referencedColumns: ['id'];
+};
+
+type Table<
+  Row extends Base,
+  Required extends keyof Row = never,
+  Relationships extends Rel<string, string, string>[] = [],
+> = {
   Row: Row;
-  Insert: BaseInsert &
-    Pick<Row, Required> &
-    Partial<Omit<Row, keyof Base | Required>>;
+  Insert: BaseInsert & Pick<Row, Required> & Partial<Omit<Row, keyof Base | Required>>;
   Update: Partial<Row>;
-  Relationships: [];
+  Relationships: Relationships;
 };
 
 export type ItemCategory = 'top' | 'bottom' | 'dress' | 'outerwear' | 'shoes' | 'bag' | 'accessory';
@@ -86,12 +96,30 @@ export type WearRow = Base & {
 export type Database = {
   public: {
     Tables: {
-      items: Table<ItemRow, 'category' | 'photo_path'>;
+      items: Table<
+        ItemRow,
+        'category' | 'photo_path',
+        [Rel<'items_source_wish_fk', 'source_wish_id', 'wishes'>]
+      >;
       outfits: Table<OutfitRow, 'name'>;
-      outfit_items: Table<OutfitItemRow, 'outfit_id' | 'item_id' | 'x' | 'y'>;
+      outfit_items: Table<
+        OutfitItemRow,
+        'outfit_id' | 'item_id' | 'x' | 'y',
+        [
+          Rel<'outfit_items_outfit_id_fkey', 'outfit_id', 'outfits'>,
+          Rel<'outfit_items_item_id_fkey', 'item_id', 'items'>,
+        ]
+      >;
       wishes: Table<WishRow, 'category'>; // decide_at is set by a trigger
       brand_sizes: Table<BrandSizeRow, 'brand' | 'size'>;
-      wears: Table<WearRow, 'item_id'>;
+      wears: Table<
+        WearRow,
+        'item_id',
+        [
+          Rel<'wears_item_id_fkey', 'item_id', 'items'>,
+          Rel<'wears_outfit_id_fkey', 'outfit_id', 'outfits'>,
+        ]
+      >;
     };
     Views: { [_ in never]: never };
     Functions: {

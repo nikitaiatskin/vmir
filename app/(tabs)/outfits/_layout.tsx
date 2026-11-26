@@ -16,6 +16,8 @@ export default function OutfitsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Outfits' }} />
+      <Stack.Screen name="builder" options={{ title: 'New outfit', headerLargeTitle: false }} />
+      <Stack.Screen name="[outfitId]" options={{ title: '', headerLargeTitle: false }} />
     </Stack>
   );
 }
