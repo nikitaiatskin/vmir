@@ -33,6 +33,7 @@ function AuthGate() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="add-item" options={{ presentation: 'modal', title: 'Add item' }} />
+      <Stack.Screen name="edit-item/[id]" options={{ presentation: 'modal', title: 'Edit item' }} />
       <Stack.Screen name="add-wish" options={{ presentation: 'modal', title: 'Add to wishlist' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
     </Stack>

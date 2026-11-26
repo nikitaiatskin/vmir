@@ -16,6 +16,7 @@ export default function WardrobeLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Wardrobe' }} />
+      <Stack.Screen name="[itemId]" options={{ title: '', headerLargeTitle: false }} />
     </Stack>
   );
 }
