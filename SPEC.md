@@ -7,18 +7,23 @@ This document describes **how** the MVP from `project.md` is built: data model, 
 ## 1. Architecture
 
 ```
-┌────────────────────────┐        ┌──────────────────────────────────────┐
-│  iPhone (Expo app)     │        │  Supabase                            │
-│                        │  HTTPS │                                      │
-│  expo-router screens   │───────▶│  Auth (anonymous sign-in)            │
-│  TanStack Query cache  │        │  Postgres + Row Level Security       │
-│  local notifications   │        │  Storage: item-photos, outfit-images │
-│                        │        │  Edge Function: process-item-image ──┼──▶ background-removal API
-└────────────────────────┘        └──────────────────────────────────────┘
+┌──────────────────────────────────┐        ┌──────────────────────────────────────┐
+│  iPhone (Expo development build) │        │  Supabase                            │
+│                                  │  HTTPS │                                      │
+│  expo-router screens (TS)        │───────▶│  Auth (anonymous sign-in)            │
+│  TanStack Query cache            │        │  Postgres + Row Level Security       │
+│  local notifications             │        │  Storage: item-photos, outfit-images │
+│  ┌────────────────────────────┐  │        └──────────────────────────────────────┘
+│  │ Swift module hanger-vision │  │
+│  │  Vision: cutout, OCR       │  │
+│  │  Foundation Models (AI)    │  │
+│  └────────────────────────────┘  │
+└──────────────────────────────────┘
 ```
 
 - The app talks to Supabase directly with the **anon key** + user JWT. Every table is protected by RLS.
-- Secrets (background-removal API key, service role key) live **only** in Edge Function secrets.
+- All image processing and AI run **on the device**. Only the original photo and the finished cutout are uploaded. There are no third-party API keys.
+- The service role key is never in the app; it is used only by CI for migrations.
 - Notifications are **local** (`expo-notifications`), so no push server is needed.
 
 ### Folder structure
@@ -39,10 +44,12 @@ src/
   lib/                supabase client, notifications, image helpers
   theme/              colours, spacing, typography tokens (see DESIGN.md)
   types/              generated DB types + zod schemas
+modules/
+  hanger-vision/      local Expo Module (Swift): Vision + Foundation Models bridge
+    ios/              HangerVisionModule.swift, ItemTagger.swift, ScreenshotReader.swift
+    src/              TypeScript API + types
 supabase/
   migrations/         SQL migrations (timestamped, never edited after merge)
-  functions/
-    process-item-image/
   tests/              SQL / RLS tests
 __tests__/            Jest unit + component tests
 ```
@@ -122,18 +129,43 @@ RLS is covered by SQL tests in `supabase/tests/` (user A can never read or write
 
 ---
 
-## 3. Edge Function `process-item-image`
+## 3. On-device processing: module `hanger-vision`
 
-**Input:** `{ table: 'items' | 'wishes', id: uuid }` with the user's JWT.
+Local Expo Module written in Swift. Minimum iOS: **17** (Vision subject lifting). Apple Intelligence features: **iOS 26+** on a device where `SystemLanguageModel.default.availability == .available`.
 
-1. Verify that the row belongs to the caller.
-2. Download `photo_path` from Storage.
-3. Call the background-removal API → PNG with transparency. Save as `{user_id}/{id}_cutout.png`.
-4. Extract up to **3 dominant colours** from non-transparent pixels (k-means on a 64×64 downscale, ignoring clusters < 8 % of pixels). Round to hex.
-5. Update the row: `cutout_path`, `colors` (only if the user hasn't edited them yet), `processing_status = 'done'`.
-6. On any error: `processing_status = 'failed'`; the app shows the original photo and a "Retry" button.
+### TypeScript API
+```ts
+isAIAvailable(): Promise<'available' | 'notSupported' | 'turnedOff' | 'notReady'>
+cutout(photoUri: string): Promise<{ uri: string }>            // PNG with transparency
+dominantColors(imageUri: string, max?: number): Promise<string[]> // hex, from non-transparent pixels
+tagItem(imageUri: string): Promise<ItemSuggestion>             // throws AI_UNAVAILABLE
+readScreenshot(imageUri: string): Promise<WishSuggestion>      // throws AI_UNAVAILABLE
+```
 
-Timeouts: 20 s for the API call. The app polls/refetches the row while `pending`.
+### Add-item pipeline
+1. Resize the photo (max 1600 px) → upload the original to Storage, row created with `processing_status = 'pending'`.
+2. `cutout()` → Vision `VNGenerateForegroundInstanceMaskRequest`, keep the largest instance, crop to its bounds. Upload as `{user_id}/{id}_cutout.png`. If no subject is found → keep the original photo, `processing_status = 'failed'`, show "Retry".
+3. `dominantColors()` → up to **3 colours**, k-means on a 64×64 downscale, ignoring clusters < 8 % of pixels.
+4. If `isAIAvailable() === 'available'` → `tagItem(cutout)` and pre-fill the form. Otherwise the form stays empty except colours.
+5. Save → `processing_status = 'done'`.
+
+### `tagItem` — Foundation Models
+Guided generation into a `@Generable` Swift struct, so the output is always valid:
+```swift
+@Generable struct ItemSuggestion {
+  @Guide(.anyOf(["top","bottom","dress","outerwear","shoes","bag","accessory"])) var category: String
+  @Guide(description: "Short name, max 4 words, e.g. 'White linen shirt'") var name: String
+  @Guide(.anyOf(["spring","summer","autumn","winter"]), .count(1...4)) var seasons: [String]
+  @Guide(description: "Material if clearly visible, else empty") var material: String
+}
+```
+- Instructions: *"You tag clothing photos for a wardrobe app. Describe only what is visible. Never guess brand or size."*
+- The image is passed as a multimodal prompt (iOS 27). On iOS 26 (text only), Vision `VNClassifyImageRequest` labels are passed as text instead.
+- Timeout 10 s → on timeout or error the form is simply left for manual input. AI errors are never shown as blocking errors.
+- Suggestions are visually marked ("✨ Suggested") until the user confirms or edits them.
+
+### `readScreenshot` — wishlist
+Vision OCR (`VNRecognizeTextRequest`, accurate) → recognised lines → Foundation Models guided generation into `WishSuggestion { brand, name, price, currency }`. The product image is cropped with `cutout()` from the same screenshot.
 
 ---
 
@@ -208,6 +240,8 @@ For a wish `w` and every active item `i`:
 | Unit | Jest | cost per wear, match check (colour distance, compatibility), cool-off dates, zod schemas |
 | Component | React Native Testing Library | item form validation, wishlist decision flow, empty states |
 | Database | SQL tests (`supabase test db`) | RLS isolation between two users, constraints |
-| Manual | Expo Go on a real iPhone | camera, notifications, canvas gestures (checklist in each PR) |
+| Native module | XCTest in `modules/hanger-vision/ios/Tests` | cutout on sample photos, colour extraction, `@Generable` decoding |
+| AI quality | Fixed set of 30 sample photos + expected category | auto-tag accuracy ≥ 80 %, run manually before each release |
+| Manual | Development build on a real iPhone (one with and one without Apple Intelligence) | camera, cutout, auto-tag + fallback, notifications, canvas gestures (checklist in each PR) |
 
-CI (GitHub Actions) on every push and PR: `npm ci` → `npm run lint` → `npm run typecheck` → `npm test`. On `main`: apply migrations to Supabase, then `eas update --channel main`.
+CI (GitHub Actions) on every push and PR: `npm ci` → `npm run lint` → `npm run typecheck` → `npm test`. On `main`: apply migrations to Supabase, then `eas update --channel main` (JS changes). Changes in `modules/` need a new `eas build --profile development`.

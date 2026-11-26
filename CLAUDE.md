@@ -18,7 +18,10 @@ If a request conflicts with the **non-goals** in `project.md`, say so before wri
 ## Commands
 ```bash
 npm install
-npx expo start                 # run in Expo Go
+npx expo prebuild               # generate ios/ (after native changes)
+npx expo run:ios --device       # build the development build onto a connected iPhone
+npx expo start --dev-client     # start Metro for the development build
+eas build --profile development --platform ios   # cloud build alternative
 npm run lint                   # ESLint
 npm run typecheck              # tsc --noEmit
 npm test                       # Jest
@@ -37,6 +40,14 @@ npx supabase gen types typescript --local > src/types/database.ts
 - Function components and hooks only. Name files in `kebab-case.ts(x)` and components in `PascalCase`.
 - User-facing strings are plain English and match `DESIGN.md` copy.
 
+## Native module & Apple Intelligence
+- All Swift code lives in `modules/hanger-vision`. Keep it thin: Apple framework calls only, no business logic (that stays in TypeScript).
+- Every AI call must have a fallback path: check `isAIAvailable()` first, wrap in try/catch, time out after 10 s, and leave the form editable.
+- Use guided generation (`@Generable`) for all model output; never parse free text.
+- AI suggestions are never saved without the user seeing them.
+- Test on two devices (with and without Apple Intelligence) before merging any change in this area.
+- Respect Apple's acceptable use requirements for Foundation Models.
+
 ## Database
 - Schema changes **only** through new migration files in `supabase/migrations/`. Never edit a merged migration.
 - Every new table: `user_id`, RLS enabled, four policies, and an RLS test in `supabase/tests/`.
@@ -44,7 +55,7 @@ npx supabase gen types typescript --local > src/types/database.ts
 
 ## Security
 - Never commit `.env` or keys. Only `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` may be in the app.
-- Third-party API keys (background removal) live only in Supabase Edge Function secrets.
+- No third-party API keys in the MVP: image processing and AI run on the device.
 - Never log personal data or photos.
 
 ## Testing
