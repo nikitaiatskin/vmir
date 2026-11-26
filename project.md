@@ -92,3 +92,67 @@ The MVP is a **single-user iPhone app** with five connected features. Every feat
 | **Dev tooling** | **Claude Code** with `CLAUDE.md` project rules | AI pair programmer following the project conventions. |
 
 **Estimated running cost for the MVP:** 0 € for Supabase and Expo (free tiers), plus background removal per image (free quota, then roughly a few cents per photo). A fallback keeps the original photo if the API fails or the quota runs out.
+
+---
+
+## 6. Initiative, epics and user stories
+
+### Initiative
+**Help people shop smarter by making their wardrobe visible at the moment of purchase.**
+Success metric for the MVP: test users skip at least 1 in 3 wishlist items after the cool-off period, and at least 50 % of wardrobe items get worn (logged) within the first month.
+
+### Epic 0 — Foundation
+- **US-0.1** As a new user, I want to open the app and start right away without signing up, so that I don't give up before I see any value.
+- **US-0.2** As a user, I want my data to stay when I reinstall the app or lose connection briefly, so that I don't lose my wardrobe.
+- **US-0.3** As a developer, I want lint, typecheck, tests and migrations to run on every push, so that main is always working.
+
+### Epic 1 — Digital wardrobe
+- **US-1.1** As a user, I want to take a photo of a clothing item, so that I can add it to my wardrobe in seconds.
+- **US-1.2** As a user, I want to pick several photos from my library at once, so that I can add old photos quickly.
+- **US-1.3** As a user, I want the background removed automatically, so that my wardrobe looks clean and items can be combined.
+- **US-1.4** As a user, I want to set category, brand, size, price, season and purchase date, so that I can find and evaluate items later.
+- **US-1.5** As a user, I want colours detected automatically (and editable), so that I don't have to tag them myself.
+- **US-1.6** As a user, I want to filter my wardrobe by category, colour and season, so that I can find things fast.
+- **US-1.7** As a user, I want to edit, archive (sold / donated) or delete an item, so that my wardrobe stays accurate.
+
+### Epic 2 — Outfit builder
+- **US-2.1** As a user, I want to drag items from my wardrobe onto a canvas, so that I can see how they look together.
+- **US-2.2** As a user, I want to move, resize, rotate and reorder items on the canvas, so that the outfit looks realistic.
+- **US-2.3** As a user, I want to save an outfit with a name and tags (work, party, casual), so that I can reuse it.
+- **US-2.4** As a user, I want to browse saved outfits in a gallery and filter them by tag, so that I can decide what to wear quickly.
+- **US-2.5** As a user, I want to see all outfits that contain a given item, so that I know how versatile it is.
+
+### Epic 3 — Wishlist and match check
+- **US-3.1** As a user, I want to add an item I'm considering with a photo, link, price and shop, so that I don't forget it.
+- **US-3.2** As a user, I want to share a product page from Safari into the app, so that adding is one step.
+- **US-3.3** As a user, I want to see similar items I already own, so that I don't buy a duplicate.
+- **US-3.4** As a user, I want to see how many of my items match the new item's colours, so that I know whether it fits my wardrobe.
+- **US-3.5** As a user, I want to store my size for each brand and see it when I add a wishlist item from that brand, so that I order the right size.
+
+### Epic 4 — Cool-off timer
+- **US-4.1** As a user, I want each wishlist item to get a waiting period (7 / 14 / 30 days), so that I avoid impulse buys.
+- **US-4.2** As a user, I want a notification when the waiting period ends, so that I make a conscious decision.
+- **US-4.3** As a user, I want to mark the item as **Bought** and have it move into my wardrobe with its details, so that I don't enter it twice.
+- **US-4.4** As a user, I want to mark the item as **Skipped** and see the money saved, so that I feel rewarded for not buying.
+
+### Epic 5 — Cost per wear and stats
+- **US-5.1** As a user, I want to tap "Worn today" on an item or an outfit, so that tracking takes one second.
+- **US-5.2** As a user, I want to see how many times I wore an item and its cost per wear, so that I know if it was worth it.
+- **US-5.3** As a user, I want a wear calendar, so that I can see and fix what I logged.
+- **US-5.4** As a user, I want a stats screen with money spent, money saved, most-worn and never-worn items, so that I learn from my habits.
+
+### Release plan (build steps)
+
+| Step | Content | Epic |
+|---|---|---|
+| 1 | Expo project setup, Supabase anonymous sign-in, CI | 0 |
+| 2 | Database schema, RLS, storage buckets | 0 |
+| 3 | Add item: camera / library, upload, item form | 1 |
+| 4 | Edge Function: background removal + colour extraction | 1 |
+| 5 | Wardrobe grid, filters, item detail, edit / archive | 1 |
+| 6 | Outfit canvas and saving outfits | 2 |
+| 7 | Outfit gallery, tags, "outfits with this item" | 2 |
+| 8 | Wishlist, share from Safari, brand sizes, match check | 3 |
+| 9 | Cool-off notifications, Bought / Skipped flow | 4 |
+| 10 | Wear logging, calendar, cost per wear, stats screen | 5 |
+| 11 | Polish: empty states, error states, accessibility, Expo Go link | all |
