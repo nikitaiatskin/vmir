@@ -16,26 +16,26 @@ public class HangerVisionModule: Module {
 
     /// Removes the background with Vision subject lifting. Returns a file URI of a cropped PNG.
     AsyncFunction("cutout") { (uri: String) -> String in
-      let image = try ImageIO.load(uri)
+      let image = try ImageLoader.load(uri)
       return try Cutout.run(image)
     }
 
     /// Returns up to `size * size` RGB samples from non-transparent pixels: [r, g, b, r, g, b, ...].
     /// Colour clustering happens in TypeScript (src/features/color.ts) so it can be unit tested.
     AsyncFunction("samplePixels") { (uri: String, size: Int) -> [Int] in
-      let image = try ImageIO.load(uri)
+      let image = try ImageLoader.load(uri)
       return try PixelSampler.sample(image, size: max(8, min(size, 128)))
     }
 
     /// Vision image classification labels with confidence ≥ 0.1, best first.
     AsyncFunction("classify") { (uri: String) -> [String] in
-      let image = try ImageIO.load(uri)
+      let image = try ImageLoader.load(uri)
       return try Classifier.labels(image)
     }
 
     /// Recognised text lines (Vision OCR, accurate), top to bottom.
     AsyncFunction("recognizeText") { (uri: String) -> [String] in
-      let image = try ImageIO.load(uri)
+      let image = try ImageLoader.load(uri)
       return try TextReader.lines(image)
     }
 
@@ -67,7 +67,7 @@ final class AIUnavailableException: Exception {
 
 // MARK: - Image loading
 
-enum ImageIO {
+enum ImageLoader {
   struct Loaded {
     let cgImage: CGImage
     let orientation: CGImagePropertyOrientation
@@ -112,7 +112,7 @@ extension CGImagePropertyOrientation {
 // MARK: - Background removal (iOS 17+)
 
 enum Cutout {
-  static func run(_ image: ImageIO.Loaded) throws -> String {
+  static func run(_ image: ImageLoader.Loaded) throws -> String {
     let request = VNGenerateForegroundInstanceMaskRequest()
     let handler = VNImageRequestHandler(cgImage: image.cgImage, orientation: image.orientation)
     try handler.perform([request])
@@ -124,24 +124,30 @@ enum Cutout {
       from: handler,
       croppedToInstancesExtent: true
     )
-    return try ImageIO.writePNG(CIImage(cvPixelBuffer: buffer))
+    return try ImageLoader.writePNG(CIImage(cvPixelBuffer: buffer))
   }
 }
 
 // MARK: - Pixel sampling
 
 enum PixelSampler {
-  static func sample(_ image: ImageIO.Loaded, size: Int) throws -> [Int] {
+  static func sample(_ image: ImageLoader.Loaded, size: Int) throws -> [Int] {
     let bytesPerRow = size * 4
     var pixels = [UInt8](repeating: 0, count: size * size * 4)
-    guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-      let ctx = CGContext(
-        data: &pixels, width: size, height: size, bitsPerComponent: 8,
-        bytesPerRow: bytesPerRow, space: colorSpace,
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-    else { throw ImageLoadException() }
-    ctx.interpolationQuality = .medium
-    ctx.draw(image.cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
+    guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { throw ImageLoadException() }
+    // The context must only use the buffer while the pointer is valid.
+    let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+      guard
+        let ctx = CGContext(
+          data: buffer.baseAddress, width: size, height: size, bitsPerComponent: 8,
+          bytesPerRow: bytesPerRow, space: colorSpace,
+          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+      else { return false }
+      ctx.interpolationQuality = .medium
+      ctx.draw(image.cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
+      return true
+    }
+    guard drawn else { throw ImageLoadException() }
 
     var out: [Int] = []
     out.reserveCapacity(size * size * 3)
@@ -160,7 +166,7 @@ enum PixelSampler {
 // MARK: - Classification and OCR
 
 enum Classifier {
-  static func labels(_ image: ImageIO.Loaded) throws -> [String] {
+  static func labels(_ image: ImageLoader.Loaded) throws -> [String] {
     let request = VNClassifyImageRequest()
     let handler = VNImageRequestHandler(cgImage: image.cgImage, orientation: image.orientation)
     try handler.perform([request])
@@ -173,7 +179,7 @@ enum Classifier {
 }
 
 enum TextReader {
-  static func lines(_ image: ImageIO.Loaded) throws -> [String] {
+  static func lines(_ image: ImageLoader.Loaded) throws -> [String] {
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = true

@@ -9,7 +9,10 @@ describe('ItemForm', () => {
     const onChange = jest.fn();
     await render(<ItemForm value={emptyItemForm} onChange={onChange} />);
     await fireEvent.press(screen.getByRole('button', { name: 'Shoes' }));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ category: 'shoes' }), 'category');
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'shoes' }),
+      'category',
+    );
   });
 
   it('shows validation errors and AI suggestion badges', async () => {
@@ -29,7 +32,9 @@ describe('ItemForm', () => {
 describe('EmptyState', () => {
   it('renders the copy and action', async () => {
     const onAction = jest.fn();
-    await render(<EmptyState text="Your wardrobe is empty." action="Add first item" onAction={onAction} />);
+    await render(
+      <EmptyState text="Your wardrobe is empty." action="Add first item" onAction={onAction} />,
+    );
     await fireEvent.press(screen.getByRole('button', { name: 'Add first item' }));
     expect(onAction).toHaveBeenCalled();
   });
