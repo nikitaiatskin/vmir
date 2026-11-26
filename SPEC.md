@@ -36,6 +36,9 @@ app/                  expo-router routes (screens only, thin)
     wishlist/         index.tsx, [wishId].tsx
     stats/            index.tsx
   add-item.tsx        modal
+  add-wish.tsx        modal
+  edit-item/[id].tsx  modal
+  settings.tsx
   _layout.tsx
 src/
   api/                Supabase queries and mutations (one file per table)
@@ -133,39 +136,38 @@ RLS is covered by SQL tests in `supabase/tests/` (user A can never read or write
 
 Local Expo Module written in Swift. Minimum iOS: **17** (Vision subject lifting). Apple Intelligence features: **iOS 26+** on a device where `SystemLanguageModel.default.availability == .available`.
 
-### TypeScript API
+### Native API (`modules/hanger-vision`)
+The Swift side only calls Apple frameworks. All decisions (clustering, validation, fallbacks) live in TypeScript.
 ```ts
-isAIAvailable(): Promise<'available' | 'notSupported' | 'turnedOff' | 'notReady'>
-cutout(photoUri: string): Promise<{ uri: string }>            // PNG with transparency
-dominantColors(imageUri: string, max?: number): Promise<string[]> // hex, from non-transparent pixels
-tagItem(imageUri: string): Promise<ItemSuggestion>             // throws AI_UNAVAILABLE
-readScreenshot(imageUri: string): Promise<WishSuggestion>      // throws AI_UNAVAILABLE
+aiAvailability(): Promise<'available' | 'notSupported' | 'turnedOff' | 'notReady'>
+cutout(uri): Promise<string>                      // file URI of a cropped PNG with transparency
+samplePixels(uri, size): Promise<number[]>        // [r,g,b,…] of non-transparent pixels, size×size downscale
+classify(uri): Promise<string[]>                  // Vision VNClassifyImageRequest labels, best first
+recognizeText(uri): Promise<string[]>             // Vision OCR lines, top to bottom
+tagItem(labels, colorNames): Promise<…>           // Foundation Models, throws AI_UNAVAILABLE
+readScreenshot(lines): Promise<…>                 // Foundation Models, throws AI_UNAVAILABLE
 ```
+Safe wrappers in `src/features/vision.ts` (`removeBackground`, `extractColors`, `suggestItem`, `readShopScreenshot`) never throw: they return `null` / `[]` and the form stays editable. The module is loaded with `requireOptionalNativeModule`, so Jest and outdated builds simply get the fallback.
 
-### Add-item pipeline
-1. Resize the photo (max 1600 px) → upload the original to Storage, row created with `processing_status = 'pending'`.
-2. `cutout()` → Vision `VNGenerateForegroundInstanceMaskRequest`, keep the largest instance, crop to its bounds. Upload as `{user_id}/{id}_cutout.png`. If no subject is found → keep the original photo, `processing_status = 'failed'`, show "Retry".
-3. `dominantColors()` → up to **3 colours**, k-means on a 64×64 downscale, ignoring clusters < 8 % of pixels.
-4. If `isAIAvailable() === 'available'` → `tagItem(cutout)` and pre-fill the form. Otherwise the form stays empty except colours.
-5. Save → `processing_status = 'done'`.
+### Add-item pipeline (runs on the phone before anything is uploaded)
+1. Resize the photo (max 1600 px, JPEG 0.8).
+2. `cutout()` → Vision `VNGenerateForegroundInstanceMaskRequest`, all instances, cropped to their extent. No subject → keep the original photo, `processing_status = 'failed'`, the item detail offers "Retry background removal".
+3. `samplePixels(64)` → `dominantColors()` in TypeScript: k-means (k = 5), clusters < 8 % ignored, clusters with ΔE ≤ 8 merged, max **3 colours**.
+4. If `aiAvailability() === 'available'` → `classify()` + `tagItem()` pre-fill category, name and seasons. Fields the user already touched are never overwritten.
+5. Save → upload original + cutout to `item-photos/{user_id}/…`, insert the row (`processing_status = 'done' | 'failed'`).
 
 ### `tagItem` — Foundation Models
-Guided generation into a `@Generable` Swift struct, so the output is always valid:
-```swift
-@Generable struct ItemSuggestion {
-  @Guide(.anyOf(["top","bottom","dress","outerwear","shoes","bag","accessory"])) var category: String
-  @Guide(description: "Short name, max 4 words, e.g. 'White linen shirt'") var name: String
-  @Guide(.anyOf(["spring","summer","autumn","winter"]), .count(1...4)) var seasons: [String]
-  @Guide(description: "Material if clearly visible, else empty") var material: String
-}
-```
-- Instructions: *"You tag clothing photos for a wardrobe app. Describe only what is visible. Never guess brand or size."*
-- The image is passed as a multimodal prompt (iOS 27). On iOS 26 (text only), Vision `VNClassifyImageRequest` labels are passed as text instead.
-- Timeout 10 s → on timeout or error the form is simply left for manual input. AI errors are never shown as blocking errors.
-- Suggestions are visually marked ("✨ Suggested") until the user confirms or edits them.
+Guided generation into `@Generable` Swift types (`ItemSuggestion` with `CategoryValue` / `SeasonValue` enums), so the output always matches our schema; TypeScript validates it again with zod.
+- Input is text: Vision classification labels + plain colour names (e.g. "shirt, clothing" + "white"). This works on iOS 26 and 27. Passing the image itself as a multimodal prompt (iOS 27) is a planned improvement.
+- Instructions: *"Describe only what the labels support. Never guess a brand or a size."*
+- Timeout 10 s → on timeout or error the form is simply left for manual input.
+- Suggestions are marked "✨ Suggested" until the user edits them.
 
 ### `readScreenshot` — wishlist
-Vision OCR (`VNRecognizeTextRequest`, accurate) → recognised lines → Foundation Models guided generation into `WishSuggestion { brand, name, price, currency }`. The product image is cropped with `cutout()` from the same screenshot.
+Vision OCR (accurate) → lines → Foundation Models guided generation into `WishSuggestion { brand, name, price, currency, category }`. Without Apple Intelligence, a price pattern on the OCR lines still fills in the price. The product image is cut out from the same screenshot.
+
+### Adding a link
+The MVP accepts links by "Paste link" (clipboard) and the deep link `hanger://add-wish?url=…` (works from Shortcuts). A real iOS Share Extension needs its own native target and is planned after the MVP.
 
 ---
 
@@ -182,7 +184,9 @@ Vision OCR (`VNRecognizeTextRequest`, accurate) → recognised lines → Foundat
 | `/(tabs)/wishlist` | Wishlist | Sections "Waiting" (with countdown) and "Decide now", history of bought / skipped |
 | `/(tabs)/wishlist/[wishId]` | Wish detail | Image, price, link, size hint, **Match check**, Bought / Skip buttons when due |
 | `/(tabs)/stats` | Stats | Money spent, money saved, avg cost per wear, most worn, never worn, wear calendar |
-| `/settings` | Settings | Brand sizes, currency, default cool-off, notifications, delete all data |
+| `/add-wish` | Add to wishlist (modal) | Photo / library / shop screenshot, paste link, form, cool-off choice |
+| `/edit-item/[id]` | Edit item (modal) | Same form as add item |
+| `/settings` | Settings | Apple Intelligence status, default cool-off, reminders, brand sizes, delete all data |
 
 Each list screen has defined **empty**, **loading** (skeleton) and **error** (retry) states.
 
@@ -240,7 +244,7 @@ For a wish `w` and every active item `i`:
 | Unit | Jest | cost per wear, match check (colour distance, compatibility), cool-off dates, zod schemas |
 | Component | React Native Testing Library | item form validation, wishlist decision flow, empty states |
 | Database | SQL tests (`supabase test db`) | RLS isolation between two users, constraints |
-| Native module | XCTest in `modules/hanger-vision/ios/Tests` | cutout on sample photos, colour extraction, `@Generable` decoding |
+| Native module | Manual on device (XCTest target planned) | cutout on sample photos, OCR, `@Generable` output |
 | AI quality | Fixed set of 30 sample photos + expected category | auto-tag accuracy ≥ 80 %, run manually before each release |
 | Manual | Development build on a real iPhone (one with and one without Apple Intelligence) | camera, cutout, auto-tag + fallback, notifications, canvas gestures (checklist in each PR) |
 

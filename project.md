@@ -135,7 +135,7 @@ Success metric for the MVP: test users skip at least 1 in 3 wishlist items after
 
 ### Epic 3 — Wishlist and match check
 - **US-3.1** As a user, I want to add an item I'm considering with a photo, link, price and shop, so that I don't forget it.
-- **US-3.2** As a user, I want to share a product page from Safari into the app, so that adding is one step.
+- **US-3.2** As a user, I want to share a product page from Safari into the app, so that adding is one step. *(MVP: paste link + `hanger://add-wish?url=` deep link; Share Extension after MVP.)*
 - **US-3.6** As a user, I want to add a wish from a screenshot of a shop and have brand, name and price filled in, so that I don't retype them.
 - **US-3.3** As a user, I want to see similar items I already own, so that I don't buy a duplicate.
 - **US-3.4** As a user, I want to see how many of my items match the new item's colours, so that I know whether it fits my wardrobe.
@@ -154,6 +154,8 @@ Success metric for the MVP: test users skip at least 1 in 3 wishlist items after
 - **US-5.4** As a user, I want a stats screen with money spent, money saved, most-worn and never-worn items, so that I learn from my habits.
 
 ### Release plan (build steps)
+
+Status: Steps 1–11 implemented on branch `mvp` (see `README.md` → Status).
 
 | Step | Content | Epic |
 |---|---|---|
