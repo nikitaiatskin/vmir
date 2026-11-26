@@ -78,7 +78,10 @@ export function useDeleteItem() {
     mutationFn: async (item: ItemRow) => {
       const { error } = await supabase.from('items').delete().eq('id', item.id);
       if (error) throw error;
-      await removeImages('item-photos', [item.photo_path, item.cutout_path]);
+      // Photos of an item bought from the wishlist are still shown in the wishlist history.
+      if (!item.source_wish_id) {
+        await removeImages('item-photos', [item.photo_path, item.cutout_path]);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: itemKeys.all });

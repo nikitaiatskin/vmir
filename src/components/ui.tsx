@@ -48,7 +48,14 @@ type ButtonProps = Omit<PressableProps, 'children'> & {
 };
 
 /** Pill button (DESIGN.md §5 PrimaryButton). */
-export function Button({ label, kind = 'primary', loading, disabled, style, ...rest }: ButtonProps) {
+export function Button({
+  label,
+  kind = 'primary',
+  loading,
+  disabled,
+  style,
+  ...rest
+}: ButtonProps) {
   const { colors, radius, space } = useTheme();
   const bg = kind === 'primary' ? colors.accent : 'transparent';
   const fg = kind === 'primary' ? colors.onAccent : kind === 'danger' ? colors.danger : colors.text;

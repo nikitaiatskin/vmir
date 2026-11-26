@@ -65,7 +65,12 @@ export default function AddItemScreen() {
       <Stack.Screen
         options={{ title: queue.length > 1 ? `Item ${index + 1} of ${queue.length}` : 'Add item' }}
       />
-      <PhotoEditor key={`${index}-${current.uri}`} photo={current} onDone={next} canSkip={queue.length > 1} />
+      <PhotoEditor
+        key={`${index}-${current.uri}`}
+        photo={current}
+        onDone={next}
+        canSkip={queue.length > 1}
+      />
     </>
   );
 }
@@ -106,23 +111,18 @@ function PhotoEditor({
       setThinking(false);
       if (!ai) return;
       // Only fill fields the user has not edited yet; mark them as suggested (US-1.8).
-      const marks: SuggestedFields = {};
-      setDraft((d) => {
-        const next = { ...d };
-        if (!touched.current.has('category')) {
-          next.category = ai.category;
-          marks.category = true;
-        }
-        if (!touched.current.has('name') && ai.name) {
-          next.name = ai.name;
-          marks.name = true;
-        }
-        if (!touched.current.has('seasons') && ai.seasons.length) {
-          next.seasons = ai.seasons;
-          marks.seasons = true;
-        }
-        return next;
-      });
+      const t = touched.current;
+      const marks: SuggestedFields = {
+        category: !t.has('category'),
+        name: !t.has('name') && !!ai.name,
+        seasons: !t.has('seasons') && ai.seasons.length > 0,
+      };
+      setDraft((d) => ({
+        ...d,
+        ...(marks.category ? { category: ai.category } : {}),
+        ...(marks.name ? { name: ai.name } : {}),
+        ...(marks.seasons ? { seasons: ai.seasons } : {}),
+      }));
       setSuggested((s) => ({ ...s, ...marks }));
     })();
     return () => {
@@ -146,7 +146,11 @@ function PhotoEditor({
         processed.photoUri,
       );
       const cutoutPath = processed.cutoutUri
-        ? await uploadImage('item-photos', newImagePath(userId, 'png', 'cutout-'), processed.cutoutUri)
+        ? await uploadImage(
+            'item-photos',
+            newImagePath(userId, 'png', 'cutout-'),
+            processed.cutoutUri,
+          )
         : null;
       await insertItem({
         ...result.columns,
@@ -183,7 +187,11 @@ function PhotoEditor({
             justifyContent: 'center',
           }}
         >
-          <Image source={{ uri: preview }} contentFit="contain" style={{ width: '80%', height: '85%' }} />
+          <Image
+            source={{ uri: preview }}
+            contentFit="contain"
+            style={{ width: '80%', height: '85%' }}
+          />
           {!processed ? <Shimmer /> : null}
         </View>
         {!processed ? <T variant="muted">Removing background…</T> : null}
@@ -217,8 +225,16 @@ function PhotoEditor({
           gap: space.m,
         }}
       >
-        {canSkip ? <Button label="Skip" kind="secondary" onPress={onDone} style={{ flex: 1 }} /> : null}
-        <Button label="Save" onPress={save} loading={saving} disabled={!processed} style={{ flex: 2 }} />
+        {canSkip ? (
+          <Button label="Skip" kind="secondary" onPress={onDone} style={{ flex: 1 }} />
+        ) : null}
+        <Button
+          label="Save"
+          onPress={save}
+          loading={saving}
+          disabled={!processed}
+          style={{ flex: 2 }}
+        />
       </View>
     </KeyboardAvoidingView>
   );

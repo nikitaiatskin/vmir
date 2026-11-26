@@ -21,7 +21,10 @@ export default function OutfitDetailScreen() {
 
   const itemIds = new Set(outfit?.outfit_items.map((oi) => oi.item_id));
   const inOutfit = (items.data ?? []).filter((i) => itemIds.has(i.id));
-  const itemUrls = useSignedUrls('item-photos', inOutfit.map((i) => i.cutout_path ?? i.photo_path));
+  const itemUrls = useSignedUrls(
+    'item-photos',
+    inOutfit.map((i) => i.cutout_path ?? i.photo_path),
+  );
 
   if (isLoading) return <Loading />;
   if (isError || !outfit) return <ErrorState onRetry={refetch} />;
@@ -29,7 +32,11 @@ export default function OutfitDetailScreen() {
   const remove = () =>
     Alert.alert('Delete this outfit?', 'Your clothes stay in the wardrobe.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => del.mutate(outfit, { onSuccess: () => router.back() }) },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => del.mutate(outfit, { onSuccess: () => router.back() }),
+      },
     ]);
 
   return (
@@ -44,14 +51,23 @@ export default function OutfitDetailScreen() {
             <T
               accessibilityRole="button"
               style={{ fontWeight: '600' }}
-              onPress={() => router.push({ pathname: '/outfits/builder', params: { outfitId: outfit.id } })}
+              onPress={() =>
+                router.push({ pathname: '/outfits/builder', params: { outfitId: outfit.id } })
+              }
             >
               Edit
             </T>
           ),
         }}
       />
-      <View style={{ aspectRatio: 1, borderRadius: radius.tile, backgroundColor: colors.surfaceMuted, overflow: 'hidden' }}>
+      <View
+        style={{
+          aspectRatio: 1,
+          borderRadius: radius.tile,
+          backgroundColor: colors.surfaceMuted,
+          overflow: 'hidden',
+        }}
+      >
         {outfit.preview_path && preview.data?.[outfit.preview_path] ? (
           <Image
             source={{ uri: preview.data[outfit.preview_path], cacheKey: outfit.preview_path }}
@@ -73,7 +89,11 @@ export default function OutfitDetailScreen() {
           {inOutfit.map((i) => {
             const p = i.cutout_path ?? i.photo_path;
             return (
-              <Pressable key={i.id} onPress={() => router.push(`/wardrobe/${i.id}`)} style={{ width: 80 }}>
+              <Pressable
+                key={i.id}
+                onPress={() => router.push(`/wardrobe/${i.id}`)}
+                style={{ width: 80 }}
+              >
                 <ItemImage url={itemUrls.data?.[p]} cacheKey={p} label={itemTitle(i)} />
               </Pressable>
             );

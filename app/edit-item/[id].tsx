@@ -29,7 +29,10 @@ function EditItemForm({ item }: { item: ItemRow }) {
     const result = formToColumns(draft);
     if (!result.ok) return setErrors(result.errors);
     update.mutate(
-      { id: item.id, values: { ...result.columns, colors_edited: item.colors_edited || colorsEdited } },
+      {
+        id: item.id,
+        values: { ...result.columns, colors_edited: item.colors_edited || colorsEdited },
+      },
       {
         onSuccess: () => router.back(),
         onError: () => Alert.alert("Couldn't save", 'Check your connection and try again.'),

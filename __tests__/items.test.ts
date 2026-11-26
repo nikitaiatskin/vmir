@@ -33,7 +33,12 @@ describe('formToColumns', () => {
   });
 
   it('rejects a bad date and price', () => {
-    const r = formToColumns({ ...emptyItemForm, category: 'top', price: 'abc', purchasedAt: '1.1.2026' });
+    const r = formToColumns({
+      ...emptyItemForm,
+      category: 'top',
+      price: 'abc',
+      purchasedAt: '1.1.2026',
+    });
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.errors.price).toBeDefined();
@@ -49,13 +54,19 @@ describe('filterItems', () => {
     { id: '3', category: 'shoes' as const, colors: ['#111111'], seasons: ['summer' as const] },
   ];
   it('filters by category', () => {
-    expect(filterItems(items, { category: 'top', color: null, season: null }).map((i) => i.id)).toEqual(['1', '2']);
+    expect(
+      filterItems(items, { category: 'top', color: null, season: null }).map((i) => i.id),
+    ).toEqual(['1', '2']);
   });
   it('filters by colour name, not exact hex', () => {
-    expect(filterItems(items, { category: null, color: '#202B46', season: null }).map((i) => i.id)).toEqual(['1']);
+    expect(
+      filterItems(items, { category: null, color: '#202B46', season: null }).map((i) => i.id),
+    ).toEqual(['1']);
   });
   it('items without seasons count as all-year', () => {
-    expect(filterItems(items, { category: null, color: null, season: 'winter' }).map((i) => i.id)).toEqual(['1', '2']);
+    expect(
+      filterItems(items, { category: null, color: null, season: 'winter' }).map((i) => i.id),
+    ).toEqual(['1', '2']);
   });
 });
 

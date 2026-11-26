@@ -17,11 +17,15 @@ export default function OutfitsScreen() {
   const [tag, setTag] = useState<string | null>(null);
 
   const tags = useMemo(
-    () => [...new Set((data ?? []).flatMap((o) => o.tags))].sort().map((t) => ({ value: t, label: t })),
+    () =>
+      [...new Set((data ?? []).flatMap((o) => o.tags))].sort().map((t) => ({ value: t, label: t })),
     [data],
   );
   const visible = (data ?? []).filter((o) => !tag || o.tags.includes(tag));
-  const urls = useSignedUrls('outfit-images', visible.map((o) => o.preview_path));
+  const urls = useSignedUrls(
+    'outfit-images',
+    visible.map((o) => o.preview_path),
+  );
   const tile = (width - space.l * 2 - space.m) / 2;
 
   if (isLoading) return <Loading />;
@@ -66,13 +70,16 @@ export default function OutfitsScreen() {
                 {item.name}
               </T>
               <T variant="muted" numberOfLines={1} style={{ fontSize: 13 }}>
-                {item.outfit_items.length} items{item.tags.length ? ` · ${item.tags.join(', ')}` : ''}
+                {item.outfit_items.length} items
+                {item.tags.length ? ` · ${item.tags.join(', ')}` : ''}
               </T>
             </Pressable>
           )}
         />
       )}
-      {data?.length ? <Fab label="New outfit" onPress={() => router.push('/outfits/builder')} /> : null}
+      {data?.length ? (
+        <Fab label="New outfit" onPress={() => router.push('/outfits/builder')} />
+      ) : null}
     </View>
   );
 }

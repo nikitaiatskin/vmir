@@ -33,7 +33,11 @@ export function Field({
         }}
         {...input}
       />
-      {hint ? <T variant="muted" style={{ fontSize: 13 }}>{hint}</T> : null}
+      {hint ? (
+        <T variant="muted" style={{ fontSize: 13 }}>
+          {hint}
+        </T>
+      ) : null}
       {error ? <Text style={{ color: colors.danger, fontSize: 13 }}>{error}</Text> : null}
     </View>
   );
@@ -117,8 +121,22 @@ export function ColorPicker({
 }) {
   const { colors, space } = useTheme();
   const swatches = [
-    '#111111', '#F7F7F5', '#8C8C8C', '#D8C3A5', '#7B4B2A', '#1F2A44', '#2F6FD0', '#9EC5E8',
-    '#3E8E4F', '#6B6B2E', '#F2C94C', '#E8833A', '#C62828', '#6D1A2B', '#EC9EC0', '#7E57C2',
+    '#111111',
+    '#F7F7F5',
+    '#8C8C8C',
+    '#D8C3A5',
+    '#7B4B2A',
+    '#1F2A44',
+    '#2F6FD0',
+    '#9EC5E8',
+    '#3E8E4F',
+    '#6B6B2E',
+    '#F2C94C',
+    '#E8833A',
+    '#C62828',
+    '#6D1A2B',
+    '#EC9EC0',
+    '#7E57C2',
   ];
   const dot = (hex: string, size: number) => ({
     width: size,

@@ -58,7 +58,9 @@ export function ItemForm({
         onToggle={(s) =>
           set(
             'seasons',
-            value.seasons.includes(s) ? value.seasons.filter((x) => x !== s) : [...value.seasons, s],
+            value.seasons.includes(s)
+              ? value.seasons.filter((x) => x !== s)
+              : [...value.seasons, s],
           )
         }
         suggested={suggested.seasons}

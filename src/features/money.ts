@@ -30,9 +30,12 @@ export function formatMoney(cents: number | null | undefined, currency = 'EUR'):
 }
 
 /** Finds the most likely product price in OCR lines, e.g. "€49.99" or "49,99 €". */
-export function findPriceInText(lines: readonly string[]): { cents: number; currency: string } | null {
-  const symbols: Record<string, string> = { '€': 'EUR', $: 'USD', '£': 'GBP', 'Kč': 'CZK' };
-  const re = /(€|\$|£|EUR|USD|GBP|CZK|Kč)?\s?(\d{1,5}(?:[ .,]\d{3})*(?:[.,]\d{1,2})?)\s?(€|\$|£|EUR|USD|GBP|CZK|Kč)?/;
+export function findPriceInText(
+  lines: readonly string[],
+): { cents: number; currency: string } | null {
+  const symbols: Record<string, string> = { '€': 'EUR', $: 'USD', '£': 'GBP', Kč: 'CZK' };
+  const re =
+    /(€|\$|£|EUR|USD|GBP|CZK|Kč)?\s?(\d{1,5}(?:[ .,]\d{3})*(?:[.,]\d{1,2})?)\s?(€|\$|£|EUR|USD|GBP|CZK|Kč)?/;
   for (const line of lines) {
     const m = re.exec(line);
     if (!m) continue;

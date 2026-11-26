@@ -94,7 +94,11 @@ function Builder({ outfit }: { outfit: OutfitWithItems | undefined }) {
     // Let the selection border disappear before taking the snapshot.
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     try {
-      const previewUri = await captureRef(canvasRef, { format: 'png', quality: 0.9, result: 'tmpfile' });
+      const previewUri = await captureRef(canvasRef, {
+        format: 'png',
+        quality: 0.9,
+        result: 'tmpfile',
+      });
       await save.mutateAsync({
         id: outfit?.id,
         name: trimmed,
@@ -142,7 +146,10 @@ function Builder({ outfit }: { outfit: OutfitWithItems | undefined }) {
           onChange={updatePlacement}
         />
         {placements.length === 0 ? (
-          <View pointerEvents="none" style={{ position: 'absolute', inset: 0, justifyContent: 'center' }}>
+          <View
+            pointerEvents="none"
+            style={{ position: 'absolute', inset: 0, justifyContent: 'center' }}
+          >
             <T variant="muted" style={{ textAlign: 'center' }}>
               Tap items below to add them.{'\n'}Drag, pinch and rotate to arrange.
             </T>
@@ -151,7 +158,9 @@ function Builder({ outfit }: { outfit: OutfitWithItems | undefined }) {
       </View>
 
       {selected ? (
-        <View style={{ flexDirection: 'row', gap: space.s, padding: space.s, justifyContent: 'center' }}>
+        <View
+          style={{ flexDirection: 'row', gap: space.s, padding: space.s, justifyContent: 'center' }}
+        >
           <Button
             label="Bring forward"
             kind="secondary"
@@ -214,16 +223,33 @@ function Builder({ outfit }: { outfit: OutfitWithItems | undefined }) {
         )}
       </View>
 
-      <Modal visible={saveOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSaveOpen(false)}>
+      <Modal
+        visible={saveOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSaveOpen(false)}
+      >
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: colors.bg }}>
-          <ScrollView contentContainerStyle={{ padding: space.l, gap: space.xl }} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={{ padding: space.l, gap: space.xl }}
+            keyboardShouldPersistTaps="handled"
+          >
             <T variant="title">Save outfit</T>
-            <Field label="Name" placeholder="Monday meeting" value={name} onChangeText={setName} maxLength={60} autoFocus />
+            <Field
+              label="Name"
+              placeholder="Monday meeting"
+              value={name}
+              onChangeText={setName}
+              maxLength={60}
+              autoFocus
+            />
             <ChoiceChips
               label="Tags"
               options={[...new Set([...OUTFIT_TAGS, ...tags])].map((t) => ({ value: t, label: t }))}
               selected={tags}
-              onToggle={(t) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))}
+              onToggle={(t) =>
+                setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))
+              }
             />
             <Field
               label="Custom tag"

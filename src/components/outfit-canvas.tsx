@@ -54,7 +54,12 @@ export function OutfitCanvas({
       <View
         ref={canvasRef}
         collapsable={false}
-        style={{ width: size.width, height: size.height, backgroundColor: colors.bg, overflow: 'hidden' }}
+        style={{
+          width: size.width,
+          height: size.height,
+          backgroundColor: colors.bg,
+          overflow: 'hidden',
+        }}
       >
         {[...placements]
           .sort((a, b) => a.z - b.z)

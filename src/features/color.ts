@@ -14,7 +14,10 @@ export function hexToRgb(hex: string): RGB {
 }
 
 export function rgbToHex([r, g, b]: RGB): string {
-  const c = (v: number) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0');
+  const c = (v: number) =>
+    Math.round(Math.max(0, Math.min(255, v)))
+      .toString(16)
+      .padStart(2, '0');
   return `#${c(r)}${c(g)}${c(b)}`.toUpperCase();
 }
 
@@ -168,9 +171,10 @@ export function dominantColors(
     centres = centres.map((c, ci) => {
       const members = pts.filter((_, pi) => assign[pi] === ci);
       if (members.length === 0) return c;
-      const sum = members.reduce<RGB>((acc, p) => [acc[0] + p[0], acc[1] + p[1], acc[2] + p[2]], [
-        0, 0, 0,
-      ]);
+      const sum = members.reduce<RGB>(
+        (acc, p) => [acc[0] + p[0], acc[1] + p[1], acc[2] + p[2]],
+        [0, 0, 0],
+      );
       return [sum[0] / members.length, sum[1] / members.length, sum[2] / members.length];
     });
   }
