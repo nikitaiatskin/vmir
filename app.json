@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Hanger",
+    "slug": "hanger",
+    "scheme": "hanger",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF8F5"
+    },
+    "ios": {
+      "bundleIdentifier": "com.nikitaiatskin.hanger",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Hanger uses the camera to photograph your clothes.",
+        "NSPhotoLibraryUsageDescription": "Hanger lets you pick photos of your clothes and shop screenshots."
+      }
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-image",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Hanger lets you pick photos of your clothes and shop screenshots.",
+          "cameraPermission": "Hanger uses the camera to photograph your clothes."
+        }
+      ],
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
+      ]
+    ]
+  }
+}
